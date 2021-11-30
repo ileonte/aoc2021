@@ -1,0 +1,8 @@
+Advent of Code 2021 - https://adventofcode.com/2021
+
+> git clone --recurse-submodules https://github.com/ileonte/aoc2020.git aoc2021
+> cd aoc2020
+> mkdir build_dir
+> cd build_dir
+> cmake .. -DCMAKE_BUILD_TYPE=Release
+> make
