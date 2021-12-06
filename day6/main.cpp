@@ -14,6 +14,7 @@ std::ostream& operator<<(std::ostream& out, Fish const& f) {
 
 static inline void collapse(std::vector<Fish>& fish) {
     std::vector<Fish> shadow_fish{};
+    shadow_fish.reserve(fish.size());
     for (auto& f : fish) {
         auto it = std::find_if(std::begin(shadow_fish), std::end(shadow_fish), [&f](Fish const& sf) -> bool {
             return f.age == sf.age;
