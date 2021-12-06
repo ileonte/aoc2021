@@ -1,5 +1,9 @@
 #include <aoc.h>
 
+#if !defined(NON_STUPID_SOLUTION)
+
+/* this is the initial thing I wrote, which is pretty dumb */
+
 struct Fish {
     size_t age{};
     size_t count{};
@@ -61,19 +65,68 @@ int main() {
         }
     }
 
-    for (size_t i = 0; i < 80; i++)
-        simulate(fish);
-    auto part1 = aoc::accumulate(fish, size_t(0), [](size_t s, Fish const& f) -> size_t {
-        return s + f.count;
-    });
-    fmt::print("{}\n", part1);
+    auto ns = aoc::time_call([&fish]() {
+        for (size_t i = 0; i < 80; i++)
+            simulate(fish);
+        auto part1 = aoc::accumulate(fish, size_t(0), [](size_t s, Fish const& f) -> size_t {
+            return s + f.count;
+        });
+        fmt::print("{}\n", part1);
 
-    for (size_t i = 80; i < 256; i++)
-        simulate(fish);
-    auto part2 = aoc::accumulate(fish, size_t(0), [](size_t s, Fish const& f) -> size_t {
-        return s + f.count;
+        for (size_t i = 80; i < 256; i++)
+            simulate(fish);
+        auto part2 = aoc::accumulate(fish, size_t(0), [](size_t s, Fish const& f) -> size_t {
+            return s + f.count;
+        });
+        fmt::print("{}\n", part2);
     });
-    fmt::print("{}\n", part2);
+
+    fmt::print("{}\n", ns.count());
 
     return 0;
 }
+
+#else
+
+/* actually good solution */
+
+size_t counts[9]{};
+
+static inline void simulate2() {
+    auto zc = counts[0];
+
+    for (size_t i = 1; i < 9; i++) {
+        counts[i - 1] += counts[i];
+        counts[i] = 0;
+    }
+
+    counts[8] = zc;
+    counts[6] += zc;
+    counts[0] -= zc;
+}
+
+int main() {
+    std::string line{};
+    if (!std::getline(std::cin, line)) return 1;
+    for (auto p : aoc::str_split(aoc::trim(aoc::to_sv(line)), ',')) {
+        size_t v{};
+        if (!aoc::from_chars(p, v)) return 1;
+        counts[v]++;
+    }
+
+    auto ns = aoc::time_call([]() {
+        for (size_t i = 0; i < 80; i++) simulate2();
+        auto part1 = aoc::accumulate(counts, size_t(0), [](size_t s, size_t c) -> size_t { return s + c; });
+        fmt::print("{}\n", part1);
+
+        for (size_t i = 80; i < 256; i++) simulate2();
+        auto part2 = aoc::accumulate(counts, size_t(0), [](size_t s, size_t c) -> size_t { return s + c; });
+        fmt::print("{}\n", part2);
+    });
+
+    fmt::print("{}\n", ns.count());
+
+    return 0;
+}
+
+#endif
