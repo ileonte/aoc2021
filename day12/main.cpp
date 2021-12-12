@@ -107,6 +107,8 @@ int main() {
         if (!graph.add_edge(line)) return 1;
 
     auto paths = std::unordered_set<size_t>{};
+    paths.reserve(128000);
+
     auto start = std::chrono::steady_clock::now();
     graph.constrained_dft(id_start, id_end, paths);
     auto end = std::chrono::steady_clock::now();
