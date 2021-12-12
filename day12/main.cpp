@@ -3,7 +3,7 @@
 namespace std {
     template<>
     struct hash<vector<uint64_t>> {
-        size_t operator()(vector<size_t> const& v) const {
+        size_t operator()(vector<uint64_t> const& v) const {
             // https://github.com/boostorg/container_hash/blob/develop/include/boost/container_hash/hash.hpp#L342
             constexpr const uint64_t m = (uint64_t(0xc6a4a793) << 32) + 0x5bd1e995;
             constexpr const int r = 47;
