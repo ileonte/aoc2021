@@ -1,7 +1,31 @@
 #include <aoc.h>
 
+namespace std {
+    template<>
+    struct hash<vector<uint64_t>> {
+        size_t operator()(vector<size_t> const& v) const {
+            // https://github.com/boostorg/container_hash/blob/develop/include/boost/container_hash/hash.hpp#L342
+            constexpr const uint64_t m = (uint64_t(0xc6a4a793) << 32) + 0x5bd1e995;
+            constexpr const int r = 47;
+
+            auto h = v.size();
+            for (auto k : v) {
+                k *= m;
+                k ^= k >> r;
+                k *= m;
+
+                h ^= k;
+                h *= m;
+
+                h += 0xe6546b64;
+            }
+            return h;
+        }
+    };
+}
+
 struct Graph {
-    using IntType = uint16_t;
+    using IntType = uint64_t;
     using Path = std::vector<IntType>;
 
     std::vector<std::string> node_names{};
@@ -42,7 +66,7 @@ struct Graph {
         return true;
     }
 
-    void constrained_dft(IntType start, IntType end, std::set<Path>& paths) const {
+    void constrained_dft(IntType start, IntType end, std::unordered_set<size_t>& paths) const {
         auto counts = std::vector<size_t>{};
         auto path = Path{};
 
@@ -53,9 +77,10 @@ struct Graph {
     }
 
 private:
-    inline void dft_recurse(IntType current, IntType target, Path& path, std::set<Path>& paths, std::vector<size_t>& counts) const {
+    inline void dft_recurse(IntType current, IntType target, Path& path, std::unordered_set<size_t>& paths, std::vector<size_t>& counts) const {
         if (current == target) {
-            paths.insert(path);
+            auto hash = std::hash<Path>{}(path);
+            paths.insert(hash);
             return;
         }
 
@@ -81,7 +106,7 @@ int main() {
     while (std::getline(std::cin, line))
         if (!graph.add_edge(line)) return 1;
 
-    auto paths = std::set<Graph::Path>{};
+    auto paths = std::unordered_set<size_t>{};
     auto start = std::chrono::steady_clock::now();
     graph.constrained_dft(id_start, id_end, paths);
     auto end = std::chrono::steady_clock::now();
