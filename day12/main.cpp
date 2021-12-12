@@ -74,29 +74,34 @@ private:
 
 int main() {
     auto graph = Graph{};
+    auto id_start = graph.alloc_node("start");
+    auto id_end = graph.alloc_node("end");
 
     auto line = std::string{};
     while (std::getline(std::cin, line))
         if (!graph.add_edge(line)) return 1;
 
-    auto id_start = graph.alloc_node("start");
-    auto id_end = graph.alloc_node("end");
-
     auto paths = std::set<Graph::Path>{};
+    auto start = std::chrono::steady_clock::now();
     graph.constrained_dft(id_start, id_end, paths);
-    fmt::print("{}\n", paths.size());
+    auto end = std::chrono::steady_clock::now();
+    auto ns1 = (end - start).count();
+    fmt::print("{} ({})\n", paths.size(), ns1);
 
     paths.clear();
-    for (size_t id = 0; id < graph.node_names.size(); id++) {
-        auto name = graph.node_names.at(id);
+    start = std::chrono::steady_clock::now();
+    for (size_t id = 2; id < graph.node_names.size(); id++) {
+        auto const& name = graph.node_names.at(id);
         if (!std::islower(name.at(0))) continue;
-        if (name == "start" || name == "end") continue;
 
         graph.constraints.at(id) = 2;
         graph.constrained_dft(id_start, id_end, paths);
         graph.constraints.at(id) = 1;
     }
-    fmt::print("{}\n", paths.size());
+    end = std::chrono::steady_clock::now();
+    auto ns2 = (end - start).count();
+    fmt::print("{} ({})\n", paths.size(), ns2);
+    fmt::print("{}\n", ns1 + ns2);
 
     return 0;
 }
