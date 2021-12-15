@@ -9,6 +9,7 @@
 #include <map>
 #include <unordered_map>
 #include <string_view>
+#include <queue>
 #include <charconv>
 #include <optional>
 #include <functional>
