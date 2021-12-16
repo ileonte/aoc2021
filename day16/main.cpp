@@ -1,12 +1,5 @@
 #include <aoc.h>
 
-struct Header {
-    uint8_t size_top:1{};
-    uint8_t len_id:1{};
-    uint8_t type_id:3{};
-    uint8_t version:3{};
-};
-
 struct Bitstream {
     std::vector<char> data{};
     size_t pos{};
