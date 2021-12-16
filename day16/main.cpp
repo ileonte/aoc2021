@@ -9,12 +9,12 @@ struct Bitstream {
         if (!std::getline(in, line)) return false;
         if (line.size() % 2) return false;
         ret.data.clear();
-        ret.data.reserve(line.size() * 4);
+        ret.data.resize(line.size() * 4);
         for (size_t i = 0; i < line.size() / 2; i++) {
             auto sv = aoc::substr(line, i * 2, 2);
             auto v = uint8_t{};
             if (!aoc::from_chars(sv, v, 16)) return false;
-            fmt::format_to(std::back_inserter(ret.data), "{:08b}", v);
+            fmt::format_to(ret.data.data() + i * 8, "{:08b}", v);
         }
         return true;
     }
@@ -112,16 +112,8 @@ struct Packet {
         switch (id) {
             case 0: return aoc::accumulate(children, size_t(0), [](size_t s, Packet const& p) { return s + p.evaluate(); });
             case 1: return aoc::accumulate(children, size_t(1), [](size_t s, Packet const& p) { return s * p.evaluate(); });
-            case 2: {
-                auto ret = std::numeric_limits<size_t>::max();
-                for (auto& p : children) ret = std::min(ret, p.evaluate());
-                return ret;
-            }
-            case 3: {
-                auto ret = std::numeric_limits<size_t>::min();
-                for (auto& p : children) ret = std::max(ret, p.evaluate());
-                return ret;
-            }
+            case 2: return aoc::accumulate(children, std::numeric_limits<size_t>::max(), [](size_t m, Packet const& p) { return std::min(m, p.evaluate()); });
+            case 3: return aoc::accumulate(children, std::numeric_limits<size_t>::min(), [](size_t m, Packet const& p) { return std::max(m, p.evaluate()); });
             case 4: return val;
             case 5: return (children[0].evaluate() > children[1].evaluate()) ? 1 : 0;
             case 6: return (children[0].evaluate() < children[1].evaluate()) ? 1 : 0;
@@ -148,9 +140,8 @@ int main() {
     auto stream = Bitstream{};
     auto packets = std::vector<Packet>{};
 
-    if (!Bitstream::from_istream(std::cin, stream)) return 1;
-
     auto start = std::chrono::steady_clock::now();
+    if (!Bitstream::from_istream(std::cin, stream)) return 1;
     auto pkt = Packet{};
     while (Packet::from_stream(stream, pkt)) {
         packets.push_back(pkt);
