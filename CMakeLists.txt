@@ -11,7 +11,7 @@ function(aoc_day num)
         list(APPEND ACTUAL_SOURCES "day${num}/${fname}")
     endforeach()
     add_executable("day${num}" ${ACTUAL_SOURCES})
-    target_link_libraries("day${num}" fmt aoc_common)
+    target_link_libraries("day${num}" fmt glm aoc_common)
     target_link_options("day${num}" PUBLIC "$<IF:$<CONFIG:DEBUG>,-fsanitize=address;-fsanitize=undefined,>")
     target_compile_definitions("day${num}" PUBLIC "$<IF:$<CONFIG:DEBUG>,DEBUG=1;_GLIBCXX_DEBUG,DEBUG=0>")
     target_compile_options("day${num}" PUBLIC "$<IF:$<CONFIG:DEBUG>,-fsanitize=address;-fsanitize=undefined,>")
@@ -21,8 +21,14 @@ project("AoC2021" VERSION 1.0 DESCRIPTION "Advent of Code 2021" LANGUAGES CXX C)
 
 add_subdirectory(libs/fmt)
 
+set(GLM_FORCE_RADIANS OFF CACHE BOOL "" FORCE)
+set(GLM_GTX_integer ON CACHE BOOL "" FORCE)
+set(GLM_GTX_rotate_vector ON CACHE BOOL "" FORCE)
+add_subdirectory(libs/glm)
+
 add_library("aoc_common" INTERFACE)
 target_include_directories("aoc_common" INTERFACE "common/")
+target_link_libraries("aoc_common" INTERFACE fmt glm)
 
 aoc_day(1 "main.cpp")
 aoc_day(2 "main.cpp")
