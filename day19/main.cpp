@@ -1,77 +1,24 @@
 #include <aoc_glm.h>
 
-struct Orientation {
-    glm::ivec3 xa{};
-    glm::ivec3 ya{};
-    glm::ivec3 za{};
-    glm::mat<3, 3, int> rotation{};
-};
-namespace fmt {
-    template <>
-    struct formatter<Orientation> {
-        template <typename ParseContext>
-        constexpr auto parse(ParseContext &ctx) { return ctx.begin(); }
+using Orientation = glm::mat<3, 3, int>;
+static constexpr auto orientations = []() -> std::array<Orientation, 24> {
+    constexpr const auto directions = std::array<glm::vec3, 6>{{
+        {1, 0, 0}, {-1, 0, 0},
+        {0, 1, 0}, {0, -1, 0},
+        {0, 0, 1}, {0, 0, -1},
+    }};
 
-        template <typename FormatContext>
-        auto format(Orientation const& o, FormatContext &ctx) {
-            return format_to(ctx.out(), "{{{}, {}, {}, {}}}", o.xa, o.ya, o.za, o.rotation);
-        }
-    };
-}
-
-static constexpr const auto directions = std::array<glm::vec3, 6>{{
-    {1, 0, 0}, {-1, 0, 0},
-    {0, 1, 0}, {0, -1, 0},
-    {0, 0, 1}, {0, 0, -1},
-}};
-// static constexpr const auto orientations = std::array<Orientation, 24>{{
-//     {{1,0,0}, {0,1,0}, {{1,0,0},{0,1,0},{0,0,1}}},
-//     {{1,0,0}, {0,0,-1}, {{1,0,0},{0,0,1},{0,-1,0}}},
-//     {{1,0,0}, {0,-1,0}, {{1,0,0},{0,-1,0},{0,0,-1}}},
-//     {{1,0,0}, {0,0,1}, {{1,0,0},{0,0,-1},{0,1,0}}},
-//     {{-1,0,0}, {0,1,0}, {{1,0,0},{0,1,0},{0,0,1}}},
-//     {{-1,0,0}, {0,0,1}, {{1,0,0},{0,0,-1},{0,1,0}}},
-//     {{-1,0,0}, {0,-1,0}, {{1,0,0},{0,-1,0},{0,0,-1}}},
-//     {{-1,0,0}, {0,0,-1}, {{1,0,0},{0,0,1},{0,-1,0}}},
-//     {{0,1,0}, {0,1,0}, {{1,0,0},{0,1,0},{0,0,1}}},
-//     {{0,1,0}, {0,0,0}, {{0,0,-1},{0,1,0},{1,0,0}}},
-//     {{0,1,0}, {0,1,0}, {{-1,0,0},{0,1,0},{0,0,-1}}},
-//     {{0,1,0}, {0,1,0}, {{0,0,1},{0,1,0},{-1,0,0}}},
-//     {{0,-1,0}, {0,1,0}, {{1,0,0},{0,1,0},{0,0,1}}},
-//     {{0,-1,0}, {0,0,0}, {{0,0,1},{0,1,0},{-1,0,0}}},
-//     {{0,-1,0}, {0,1,0}, {{-1,0,0},{0,1,0},{0,0,-1}}},
-//     {{0,-1,0}, {0,1,0}, {{0,0,-1},{0,1,0},{1,0,0}}},
-//     {{0,0,1}, {0,1,0}, {{1,0,0},{0,1,0},{0,0,1}}},
-//     {{0,0,1}, {1,0,0}, {{0,1,0},{-1,0,0},{0,0,1}}},
-//     {{0,0,1}, {0,-1,0}, {{-1,0,0},{0,-1,0},{0,0,1}}},
-//     {{0,0,1}, {-1,0,0}, {{0,-1,0},{1,0,0},{0,0,1}}},
-//     {{0,0,-1}, {0,1,0}, {{1,0,0},{0,1,0},{0,0,1}}},
-//     {{0,0,-1}, {-1,0,0}, {{0,-1,-0},{1,0,0},{0,0,1}}},
-//     {{0,0,-1}, {0,-1,0}, {{-1,0,0},{0,-1,0},{0,0,1}}},
-//     {{0,0,-1}, {1,0,0}, {{0,1,0},{-1,0,0},{0,0,1}}},
-// }};
-static auto orientations = std::vector<Orientation>{};
-
-static inline void gen_orientations() {
-    for (auto& fwd : directions) {
-        for (auto& up : directions) {
-            if ((fwd == up) || (fwd == -up)) continue;
-            auto za = glm::ivec3(glm::cross(fwd, up));
-
-            auto rot = glm::mat<3, 3, int>(
-                fwd.x, up.x, za.x,
-                fwd.y, up.y, za.y,
-                fwd.z, up.z, za.z
-            );
-            orientations.push_back(Orientation {
-                .xa = fwd,
-                .ya = up,
-                .za = za,
-                .rotation = rot
-            });
+    auto ret = std::array<Orientation, 24>{};
+    auto idx = size_t{};
+    for (auto& xa : directions) {
+        for (auto& ya : directions) {
+            if ((xa == ya) || (xa == -ya)) continue;
+            auto za = glm::cross(xa, ya);
+            ret[idx++] = {xa, ya, za};
         }
     }
-}
+    return ret;
+}();
 
 struct Scanner {
     size_t id{};
@@ -95,6 +42,7 @@ struct Scanner {
         }
 
         ret.id = id;
+        ret.beacons.reserve(ret.relative_beacons.size());
 
         return true;
     }
@@ -105,41 +53,37 @@ struct Scanner {
             return false;
         }
 
-        beacons.reserve(relative_beacons.size());
         beacons.clear();
 
-        auto& o = orientation();
+        auto& o = orientations[next_orientation_id++];
         for (auto& b : relative_beacons)
-            beacons.push_back(b * o.rotation);
-
-        next_orientation_id++;
+            beacons.push_back(b * o);
         return true;
     }
 
-    size_t orientation_id() const {
-        return next_orientation_id ? next_orientation_id - 1 : orientations.size() - 1;
-    }
-    Orientation const& orientation() const {
-        return orientations[orientation_id()];
-    }
-
-    bool matches(Scanner const& other) const {
-        auto m = std::vector<glm::ivec3>{};
-        m.reserve(12);
-
+    bool matches(Scanner& other) const {
         for (auto& ours : beacons) {
             for (auto& theirs : other.beacons) {
-                if (ours != theirs) continue;
-                m.push_back(ours);
-                break;
-            }
-            if (m.size() == 12) {
-                fmt::print("{}\n", m);
-                break;
+                if (count_matches(other, theirs - ours) >= 12) {
+                    other.position = position + ours - theirs;
+                    return true;
+                }
             }
         }
+        return false;
+    }
 
-        return m.size() == 12;
+private:
+    size_t count_matches(Scanner const& other, glm::ivec3 translation) const {
+        auto ret = size_t{};
+        for (auto& p : other.beacons) {
+            auto t = p - translation;
+            if (std::find(beacons.begin(), beacons.end(), t) != beacons.end()) {
+                ret++;
+                if (ret >= 12) break;
+            }
+        }
+        return ret;
     }
 };
 
@@ -154,23 +98,48 @@ int main() {
         scanners.push_back(std::move(scanner));
     }
 
-    gen_orientations();
+    auto unsolved = std::deque<Scanner*>{};
+    for (size_t i = 1; i < scanners.size(); i++) unsolved.push_back(&scanners[i]);
 
-    auto p = glm::ivec3(1, 2, 3);
-    for (auto& o : orientations)
-        fmt::print("{}\n", p * o.rotation);
+    auto solved = std::vector<Scanner*>{};
+    solved.push_back(&scanners[0]);
 
-    // auto& s1 = scanners[0];
-    // auto& s2 = scanners[1];
+    solved[0]->next_orientation();
+    while (!unsolved.empty()) {
+        auto current = unsolved.front();
+        unsolved.pop_front();
 
-    // s1.next_orientation();
-    // while (s2.next_orientation()) {
-    //     fmt::print("{}\n", s2.beacons);
-    //     if (s1.matches(s2)) {
-    //         fmt::print("MATCH at orientation {}!\n", s2.orientation_id());
-    //         break;
-    //     }
-    // }
+        auto matched = false;
+        while (!matched && current->next_orientation()) {
+            for (auto anchor : solved) {
+                if (!anchor->matches(*current)) continue;
+                matched = true;
+                break;
+            }
+        }
+        if (!matched) unsolved.push_back(current);
+        else solved.push_back(current);
+    }
+
+    auto unique = std::vector<glm::ivec3>{};
+    for (auto s : solved) {
+        for (auto& p : s->beacons) {
+            auto t = p + s->position;
+            if (std::find(unique.begin(), unique.end(), t) == unique.end())
+                unique.push_back(t);
+        }
+    }
+    fmt::print("{}\n", unique.size());
+
+    auto part2 = size_t{};
+    for (auto s1 : solved) {
+        auto p1 = s1->position;
+        for (auto s2 : solved) {
+            auto p2 = s2->position;
+            part2 = std::max(part2, size_t(std::abs(p2.x - p1.x) + std::abs(p2.y - p1.y) + std::abs(p2.z - p1.z)));
+        }
+    }
+    fmt::print("{}\n", part2);
 
     return 0;
 }
